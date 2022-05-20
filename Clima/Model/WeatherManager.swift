@@ -45,8 +45,8 @@ struct WeatherManager {
         
         do{
             let decodedData = try decoder.decode(WeatherData.self, from: weatherData)
-            print("Decoded JSON Data. name is - \(decodedData.name) and temp is \(decodedData.main.temp).\n Description = \(decodedData.weather[0].description)  ");
-            let id = decodedData.weather[0].id;
+            print("Decoded JSON Data. Location is - \(decodedData.name) and temp is \(decodedData.main.temp).\n Weather description : \(decodedData.weather[0].description)  ");
+            let _ = decodedData.weather[0].id;
         }
         catch {
             print(error)
