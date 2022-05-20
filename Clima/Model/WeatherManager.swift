@@ -4,7 +4,7 @@ import UIKit
 struct WeatherManager {
 
     let openWeatherBaseURL: String = "https://api.openweathermap.org/data/2.5/weather?";
-    let appId = "9698da09f02ae8d753e904c96e776cea";
+    let appId = "";
     
     func fetchWeather(_ cityName: String) {
         //fetch weather from weather API
