@@ -7,28 +7,46 @@
 //
 
 import UIKit
+import CoreLocation
 
-class WeatherViewController: UIViewController, UITextFieldDelegate {
+class WeatherViewController: UIViewController {
 
     @IBOutlet weak var conditionImageView: UIImageView!
     @IBOutlet weak var temperatureLabel: UILabel!
     @IBOutlet weak var cityLabel: UILabel!
     @IBOutlet weak var searchTextField: UITextField!
+    @IBOutlet weak var myLocation: UIButton!
     
-    let weatherManager = WeatherManager();
+    var weatherManager = WeatherManager();
+    let locationManager = CLLocationManager()
     
     @IBAction func searchPressed(_ sender: UIButton) {
-        print("searchPressed invoked. searchTextField value = \(searchTextField.text!)");
         searchTextField.endEditing(true);
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
+                
+        weatherManager.delegate  = self;
         searchTextField.delegate = self;
+        locationManager.delegate = self;
+        
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.requestLocation()
+
     }
     
+    @IBAction func locationPressed(_ sender: UIButton) {
+        locationManager.requestLocation()
+    }
+    
+}
+
+//MARK: - UITextFieldDelegate
+
+extension WeatherViewController: UITextFieldDelegate {
+    
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        print("textFieldShouldReturn invoked. searchTextField value = \(searchTextField.text!)");
         searchTextField.endEditing(true);
         return true;
     }
@@ -43,20 +61,48 @@ class WeatherViewController: UIViewController, UITextFieldDelegate {
         }
     }
     
-    
     func textFieldDidEndEditing(_ textField: UITextField) {
-        print("textFieldDidEndEditing invoked. searchTextField value = \(searchTextField.text!)");
-        
         if let city = searchTextField.text {
-            cityLabel.text = searchTextField.text;
             weatherManager.fetchWeather(city);
         }
         
         searchTextField.text = "";
-
-        
     }
+}
 
+//MARK: - WeatherManagerDelegate
 
+extension WeatherViewController: WeatherManagerDelegate {
+
+    func didUpdateWeather(_ weatherManager: WeatherManager, _ weather: WeatherModel) {
+        DispatchQueue.main.async {
+            self.temperatureLabel.text = weather.tempString ;
+            self.conditionImageView.image = UIImage(systemName: weather.conditionName)
+            self.cityLabel.text = weather.cityName
+        }
+    }
+    
+    func didFailWithError(error: Error){
+        print("operation failed with error \(error.localizedDescription)");
+    }
+}
+
+//MARK: - CLLocationManagerDelegate
+extension WeatherViewController: CLLocationManagerDelegate {
+    func locationManager(_ manager: CLLocationManager,
+                         didUpdateLocations locations: [CLLocation]) {
+        if let location = locations.last {
+            locationManager.stopUpdatingLocation();
+            let lat = location.coordinate.latitude;
+            let lon = location.coordinate.longitude;
+            print(lat);
+            print(lon);
+            weatherManager.fetchWeather(lat, lon);
+        }
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error){
+        print("Error \(error)");
+    }
 }
 

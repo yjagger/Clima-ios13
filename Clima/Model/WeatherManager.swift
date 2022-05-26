@@ -4,7 +4,11 @@ import UIKit
 struct WeatherManager {
 
     let openWeatherBaseURL: String = "https://api.openweathermap.org/data/2.5/weather?";
-    let appId = "";
+    
+    //DONOT COMMIT THIS IN CODE
+    let appId = "TO INSERT OPEN WEATHER APP ID HERE";
+    
+    var delegate: WeatherManagerDelegate? ;
     
     func fetchWeather(_ cityName: String) {
         //fetch weather from weather API
@@ -13,7 +17,13 @@ struct WeatherManager {
         performRequest(urlString)
     }
     
+    func fetchWeather(_ lat: Double, _ lon: Double){
+        let urlString = "https://api.openweathermap.org/data/2.5/weather?lat=\(lat)&lon=\(lon)&appid=\(appId)&units=metric";
+        performRequest(urlString);
+    }
+    
     func performRequest(_ urlString: String) {
+        
         //Networking steps
         //Step 1: Create URL
         if let url = URL(string: urlString){
@@ -24,13 +34,15 @@ struct WeatherManager {
             //Step 3: Give the session a task
             let task = session.dataTask(with: url) { data, response, error in
                 if error != nil {
-                    print(error!)
+                    self.delegate?.didFailWithError(error: error!);
                     return ;
                 }
                 
                 if let safeData = data {
                     //let dataString = String(data: safeData, encoding: .utf8)
-                    self.parseJSON(weatherData: safeData)
+                    if let weather = self.parseJSON(safeData) {
+                        self.delegate?.didUpdateWeather(self, weather)
+                    }
                 }
             }
             
@@ -40,34 +52,33 @@ struct WeatherManager {
         }
     }
     
-    func parseJSON(weatherData: Data) {
+    func parseJSON(_ weatherData: Data) -> WeatherModel? {
         let decoder = JSONDecoder();
         
-        do{
+        do {
             let decodedData = try decoder.decode(WeatherData.self, from: weatherData)
-            print("Decoded JSON Data. Location is - \(decodedData.name) and temp is \(decodedData.main.temp).\n Weather description : \(decodedData.weather[0].description)  ");
-            let _ = decodedData.weather[0].id;
+            let id = decodedData.weather[0].id;
+            let name = decodedData.name;
+            let temp = decodedData.main.temp;
+            
+            let weather = WeatherModel(conditionId: id, cityName: name, temperature: temp);
+            let desc = weather.conditionName;
+            print("Decoded JSON Data. Location is - \(name) and temp is \(temp).\n Weather description : \(decodedData.weather[0].description)  ");
+            print("condition name is \(desc)") ;
+            
+            return weather ;
         }
         catch {
-            print(error)
+            self.delegate?.didFailWithError(error: error)
+            return nil
         }
     }
-    
-    func getConditionName(weatherData: Int) -> String {
-        switch(weatherData) {
-            
-        case 200...232:
-            return "cloud.bolt"
-        case 300...321:
-            return "cloud.drizzle"
-        case 500...531:
-            return "cloud.rain"
-        default:
-            return "cloud.clear"
-        }
-    }
-    
-    
+}
 
+protocol WeatherManagerDelegate {
+    
+    func didUpdateWeather(_ weatherManager: WeatherManager, _ weather: WeatherModel)
+    func didFailWithError(error: Error)
+    
 }
 
